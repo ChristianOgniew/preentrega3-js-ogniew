@@ -1,25 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-  const productos = [
-    {
-      nombre: "Remera Moncler",
-      imagen: "./img/Remeras/MonclerRemera.png",
-      precio: 8999,
-      cuotas: 2999,
-    },
-    {
-      nombre: "Remera Burberry",
-      imagen: "./img/Remeras/BurberryRemera.png",
-      precio: 8999,
-      cuotas: 2999,
-    },
-    {
-      nombre: "Remera Essentials",
-      imagen: "./img/Remeras/EssentialRemera.png",
-      precio: 8999,
-      cuotas: 2999,
-    },
-  ];
-
   const agregarBotones = document.querySelectorAll(".agregar-producto");
   const listaProductos = document.querySelector(".lista-productos");
   const vaciarBoton = document.querySelector(".vaciar-producto");
@@ -68,14 +47,14 @@ document.addEventListener("DOMContentLoaded", function () {
     `;
   }
 
-  function generarProductoCarrito(producto, indice) {
+  function generarProductoCarrito(producto, cantidad, indice) {
     return `
       <div class="producto-carrito">
         <div>
           <img src="${producto.imagen}" alt="${producto.nombre}" />
         </div>
         <div>
-          <p>${producto.nombre} - $${producto.precio}</p>
+          <p>${producto.nombre} - $${producto.precio} - Cantidad: ${cantidad}</p>
         </div>
         <div>
           <button class="eliminar-producto btn btn-danger mb-2" data-indice="${indice}" id="eliminar-${indice}">
@@ -92,10 +71,25 @@ document.addEventListener("DOMContentLoaded", function () {
     usuario = JSON.parse(localStorage.getItem("usuario")) || usuario;
     carrito = usuario.carrito || [];
 
-    carrito.forEach(function (producto, indice) {
+    const productosContados = contarProductos(carrito);
+
+    const carritoProductos = Object.keys(productosContados).map((nombre) => {
+      const producto = carrito.find((p) => p.nombre === nombre);
+      const cantidad = productosContados[nombre];
+      return {
+        producto,
+        cantidad,
+      };
+    });
+
+    carritoProductos.forEach(function (item, indice) {
       const productoDiv = document.createElement("div");
       productoDiv.classList.add("producto");
-      productoDiv.innerHTML = generarProductoCarrito(producto, indice);
+      productoDiv.innerHTML = generarProductoCarrito(
+        item.producto,
+        item.cantidad,
+        indice
+      );
       listaProductos.appendChild(productoDiv);
     });
 
@@ -115,6 +109,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const totalCompra = document.querySelector("#total-compra");
     totalCompra.textContent = `Total: $${total}`;
+  }
+
+  function contarProductos(carrito) {
+    const productosContados = {};
+    for (const producto of carrito) {
+      if (producto.nombre in productosContados) {
+        productosContados[producto.nombre]++;
+      } else {
+        productosContados[producto.nombre] = 1;
+      }
+    }
+    return productosContados;
   }
 
   function agregarProducto(boton) {
@@ -181,18 +187,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  let productosHTML = "";
-  for (let i = 0; i < productos.length; i++) {
-    productosHTML += generarProducto(productos[i]);
-  }
-  contenedorProductos.innerHTML = productosHTML;
+  fetch("./productos.json")
+    .then((response) => response.json())
+    .then((data) => {
+      let productosHTML = "";
+      data.forEach((producto) => {
+        productosHTML += generarProducto(producto);
+      });
+      contenedorProductos.innerHTML = productosHTML;
 
-  const botonesAgregar = document.querySelectorAll(".agregar-producto");
-  botonesAgregar.forEach((boton) => {
-    boton.addEventListener("click", () => {
-      agregarProducto(boton);
+      const botonesAgregar = document.querySelectorAll(".agregar-producto");
+      botonesAgregar.forEach((boton) => {
+        boton.addEventListener("click", () => {
+          agregarProducto(boton);
+        });
+      });
+    })
+    .catch((error) => {
+      console.log("Error al obtener los datos del archivo JSON:", error);
     });
-  });
 
   renderizarCarrito();
 });
